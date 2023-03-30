@@ -45,8 +45,8 @@ func run() error {
 // and passed to the callback allowing the agent code to access the central config
 func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	conf := &config.AgentConfig{
-		CentralConfig:       centralConfig,
-		IbmApiConnectConfig: config.NewIbmApiConnectConfig(RootCmd.GetProperties(), centralConfig.GetAgentType()),
+		CentralConfig:    centralConfig,
+		ApiConnectConfig: config.NewIbmApiconnectConfig(RootCmd.GetProperties(), centralConfig.GetAgentType()),
 	}
 
 	config.SetConfig(conf)
@@ -55,7 +55,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		"component": "agent",
 	})
 
-	gatewayClient := apiconnect.NewClient(conf.IbmApiConnectConfig)
+	gatewayClient := apiconnect.NewClient(conf.ApiConnectConfig)
 	if centralConfig.IsMarketplaceSubsEnabled() {
 		agent.RegisterProvisioner(subs.NewProvisioner(gatewayClient, logger))
 	}

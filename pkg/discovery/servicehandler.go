@@ -24,7 +24,7 @@ const (
 // ServiceHandler converts a IBM  API connect Api to an array of ServiceDetails
 type ServiceHandler interface {
 	ToServiceDetail(api *apiconnect.API) *ServiceDetail
-	OnConfigChange(cfg *config.IbmApiConnectConfig)
+	OnConfigChange(cfg *config.ApiConnectConfig)
 }
 
 type serviceHandler struct {
@@ -33,7 +33,7 @@ type serviceHandler struct {
 	mode   string
 }
 
-func (s *serviceHandler) OnConfigChange(cfg *config.IbmApiConnectConfig) {
+func (s *serviceHandler) OnConfigChange(cfg *config.ApiConnectConfig) {
 }
 
 // ToServiceDetails gathers the ServiceDetail for a IBM Api connect API.
@@ -101,10 +101,8 @@ func (s *serviceHandler) getServiceDetail(api *apiconnect.API) (*ServiceDetail, 
 		ResourceType:      specType,
 		ServiceAttributes: map[string]string{},
 		AgentDetails: map[string]string{
-			common.AttrAPIID:         api.ID,
-			common.AttrChecksum:      checksum,
-			common.AttrComponentID:   api.ComponentId,
-			common.AttrEnvironmentID: api.EnvironmentId,
+			common.AttrAPIID:    api.ID,
+			common.AttrChecksum: checksum,
 		},
 		Title:   api.Name,
 		Version: api.Version,

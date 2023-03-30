@@ -14,6 +14,14 @@ type API struct {
 	EnvironmentId string
 }
 
+type AuthnRequest struct {
+	ClientId     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	ApiKey       string `json:"api_key"`
+	RefreshToken string `json:"refresh_token"`
+	GrantType    string `json:"grant_type"`
+}
+
 type OauthToken struct {
 	AccessToken        string `json:"access_token"`
 	TokenType          string `json:"token_type"`

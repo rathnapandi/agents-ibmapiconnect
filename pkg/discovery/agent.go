@@ -14,7 +14,7 @@ import (
 
 type Repeater interface {
 	Loop()
-	OnConfigChange(cfg *config.IbmApiConnectConfig)
+	OnConfigChange(cfg *config.ApiConnectConfig)
 	Stop()
 }
 
@@ -52,7 +52,7 @@ func NewAgent(cfg *config.AgentConfig, client apiconnect.Client) (agent *Agent) 
 		client:            client,
 		centralClient:     coreagent.GetCentralClient(),
 		discoveryPageSize: 50,
-		pollInterval:      cfg.IbmApiConnectConfig.PollInterval,
+		pollInterval:      cfg.ApiConnectConfig.PollInterval,
 		stopDiscovery:     make(chan bool),
 		serviceHandler:    svcHandler,
 	}
@@ -81,8 +81,8 @@ func (a *Agent) onConfigChange() {
 	a.discovery.Stop()
 	a.publisher.Stop()
 
-	a.client.OnConfigChange(cfg.IbmApiConnectConfig)
-	a.discovery.OnConfigChange(cfg.IbmApiConnectConfig)
+	a.client.OnConfigChange(cfg.ApiConnectConfig)
+	a.discovery.OnConfigChange(cfg.ApiConnectConfig)
 
 	// Restart Discovery & Publish
 	go a.discovery.Loop()

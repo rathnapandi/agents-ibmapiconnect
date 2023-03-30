@@ -23,7 +23,7 @@ func (p *publisher) Stop() {
 	p.stopPublish <- true
 }
 
-func (p *publisher) OnConfigChange(_ *config.IbmApiConnectConfig) {
+func (p *publisher) OnConfigChange(_ *config.ApiConnectConfig) {
 	// noop
 }
 

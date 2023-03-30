@@ -1,7 +1,6 @@
 package apiconnect
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -26,7 +25,7 @@ type Page struct {
 type Client interface {
 	GetAPI(id string) (*API, error)
 	ListAPIs() (*ListCatalogResponse, error)
-	OnConfigChange(ibmApiConnectConfig *config.IbmApiConnectConfig)
+	OnConfigChange(ibmApiConnectConfig *config.ApiConnectConfig)
 }
 
 // IbmApiConnectClient is the client for interacting with IBM APIM.
@@ -43,11 +42,12 @@ type IbmApiConnectClient struct {
 }
 
 type AuthClient interface {
-	GetAccessToken() (*OauthToken, *Credential, time.Duration, error)
+	GetAccessToken() (*OauthToken, *Credential, error)
+	RefreshToken(oauthToken *OauthToken) (*OauthToken, error)
 }
 
 // NewClient creates a new client for interacting with IBM Api connect.
-func NewClient(apiconnectConfig *config.ApiconnectConfig) *IbmApiConnectClient {
+func NewClient(apiconnectConfig *config.ApiConnectConfig) *IbmApiConnectClient {
 	client := &IbmApiConnectClient{}
 	client.apiClient = coreapi.NewClient(apiconnectConfig.TLS, apiconnectConfig.ProxyURL)
 	client.OnConfigChange(apiconnectConfig)
@@ -55,7 +55,7 @@ func NewClient(apiconnectConfig *config.ApiconnectConfig) *IbmApiConnectClient {
 	return client
 }
 
-func (c *IbmApiConnectClient) OnConfigChange(apiconnectConfig *config.ApiconnectConfig) {
+func (c *IbmApiConnectClient) OnConfigChange(apiconnectConfig *config.ApiConnectConfig) {
 	if c.auth != nil {
 		c.auth.Stop()
 	}
@@ -105,7 +105,7 @@ func (c *IbmApiConnectClient) healthcheck(name string) (status *hc.Status) {
 }
 
 // ListAPIs lists the API.
-func (c *IbmApiConnectClient) ListAPIs(ctx context.Context) (*ListCatalogResponse, error) {
+func (c *IbmApiConnectClient) ListAPIs() (*ListCatalogResponse, error) {
 
 	application := &ListCatalogResponse{}
 
@@ -143,35 +143,79 @@ func (c *IbmApiConnectClient) GetAPI(id string) (*API, error) {
 	return nil, nil
 }
 
-func (c *IbmApiConnectClient) GetAccessToken() (*OauthToken, *Credential, time.Duration, error) {
+func (c *IbmApiConnectClient) GetAccessToken() (*OauthToken, *Credential, error) {
 
 	oauthToken := &OauthToken{}
 	headers := map[string]string{
 		"Content-Type": "application/json",
 	}
+
+	authnRequest := AuthnRequest{
+		ClientId:     c.clientId,
+		ClientSecret: c.clientSecret,
+		ApiKey:       c.apiKey,
+		GrantType:    "api_key",
+	}
+
+	requestBody, err := json.Marshal(authnRequest)
 	request := coreapi.Request{
 		Method:  coreapi.POST,
 		URL:     c.url + "/token",
 		Headers: headers,
+		Body:    requestBody,
 	}
 
-	log.Println("Calling get JWT token")
+	log.Println("Create OAuth token")
 	response, err := c.apiClient.Send(request)
 	if err != nil {
-		return nil, nil, 0, agenterrors.Wrap(ErrCommunicatingWithGateway, err.Error())
+		return nil, nil, agenterrors.Wrap(ErrCommunicatingWithGateway, err.Error())
 	}
 	if response.Code != http.StatusOK {
-		return nil, nil, 0, ErrAuthentication
+		return nil, nil, ErrAuthentication
 	}
 	err = json.Unmarshal(response.Body, oauthToken)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, err
 	}
-
 	user := Credential{
 		ClientId:     c.clientId,
 		ClientSecret: c.clientSecret,
 		ApiKey:       c.apiKey,
 	}
-	return oauthToken, &user, c.lifetime, nil
+	return oauthToken, &user, nil
+}
+
+func (c *IbmApiConnectClient) RefreshToken(oauthToken *OauthToken) (*OauthToken, error) {
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	authnRequest := AuthnRequest{
+		ClientId:     c.clientId,
+		ClientSecret: c.clientSecret,
+		RefreshToken: oauthToken.RefreshToken,
+		GrantType:    "refresh_token",
+	}
+
+	requestBody, err := json.Marshal(authnRequest)
+	request := coreapi.Request{
+		Method:  coreapi.POST,
+		URL:     c.url + "/token",
+		Headers: headers,
+		Body:    requestBody,
+	}
+
+	log.Println("Calling  Refersh Oauth token")
+	response, err := c.apiClient.Send(request)
+	if err != nil {
+		return nil, agenterrors.Wrap(ErrCommunicatingWithGateway, err.Error())
+	}
+	if response.Code != http.StatusOK {
+		return nil, ErrAuthentication
+	}
+	err = json.Unmarshal(response.Body, oauthToken)
+	if err != nil {
+		return nil, err
+	}
+	return oauthToken, nil
 }

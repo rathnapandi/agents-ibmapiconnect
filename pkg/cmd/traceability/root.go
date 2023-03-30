@@ -4,7 +4,6 @@ import (
 	corecmd "github.com/Axway/agent-sdk/pkg/cmd"
 	"github.com/Axway/agent-sdk/pkg/cmd/service"
 	corecfg "github.com/Axway/agent-sdk/pkg/config"
-	"github.com/rathnapandi/agents-ibmapiconnect/pkg/config"
 
 	libcmd "github.com/elastic/beats/v7/libbeat/cmd"
 	"github.com/elastic/beats/v7/libbeat/cmd/instance"
@@ -51,8 +50,8 @@ func run() error {
 // and passed to the callback allowing the agent code to access the central config
 func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	agentConfig := &config.AgentConfig{
-		CentralConfig:       centralConfig,
-		IbmApiConnectConfig: config.NewIbmApiconnectConfig(RootCmd.GetProperties(), centralConfig.GetAgentType()),
+		CentralConfig:    centralConfig,
+		ApiConnectConfig: config.NewIbmApiconnectConfig(RootCmd.GetProperties(), centralConfig.GetAgentType()),
 	}
 	config.SetConfig(agentConfig)
 	return agentConfig, nil

@@ -47,11 +47,11 @@ func GetConfig() *AgentConfig {
 // AgentConfig - represents the config for agent
 type AgentConfig struct {
 	CentralConfig    corecfg.CentralConfig `config:"central"`
-	ApiconnectConfig *ApiconnectConfig     `config:"ibm"`
+	ApiConnectConfig *ApiConnectConfig     `config:"ibm"`
 }
 
 // ApiconnectConfig - represents the config for the IBM API connect gateway
-type ApiconnectConfig struct {
+type ApiConnectConfig struct {
 	corecfg.IConfigValidator
 	AgentType        corecfg.AgentType
 	PollInterval     time.Duration     `config:"PollInterval"`
@@ -70,7 +70,7 @@ type ApiconnectConfig struct {
 }
 
 // ValidateCfg - Validates the gateway config
-func (c *ApiconnectConfig) ValidateCfg() (err error) {
+func (c *ApiConnectConfig) ValidateCfg() (err error) {
 	if c.IbmApiConnectUrl == "" {
 		return fmt.Errorf("invalid IBM Api Connect configuration: atomSphereUrl is not configured")
 	} else {
@@ -137,8 +137,8 @@ func AddConfigProperties(props properties.Properties) {
 }
 
 // NewIbmApiconnectConfig - parse the props and create an IBM Api Connect Configuration structure
-func NewIbmApiconnectConfig(props properties.Properties, agentType corecfg.AgentType) *ApiconnectConfig {
-	return &ApiconnectConfig{
+func NewIbmApiconnectConfig(props properties.Properties, agentType corecfg.AgentType) *ApiConnectConfig {
+	return &ApiConnectConfig{
 		AgentType:        agentType,
 		PollInterval:     props.DurationPropertyValue(pathPollInterval),
 		LogFile:          props.StringPropertyValue(pathLogFile),

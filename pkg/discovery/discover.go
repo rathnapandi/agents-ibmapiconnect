@@ -31,7 +31,7 @@ func (d *discovery) Stop() {
 	d.stopDiscovery <- true
 }
 
-func (d *discovery) OnConfigChange(cfg *config.IbmApiConnectConfig) {
+func (d *discovery) OnConfigChange(cfg *config.ApiConnectConfig) {
 	d.pollInterval = cfg.PollInterval
 	d.serviceHandler.OnConfigChange(cfg)
 }
@@ -100,12 +100,12 @@ func (d *discovery) discoverAPIs() {
 	// 	}
 	// 	apis = append(apis, api)
 	// }
-	for _, api := range apis {
-		go func(api apiconnect.API) {
-			svcDetail := d.serviceHandler.ToServiceDetail(&api)
-			if svcDetail != nil {
-				d.apiChan <- svcDetail
-			}
-		}(api)
-	}
+	// for _, api := range apis {
+	// 	go func(api apiconnect.API) {
+	// 		svcDetail := d.serviceHandler.ToServiceDetail(&api)
+	// 		if svcDetail != nil {
+	// 			d.apiChan <- svcDetail
+	// 		}
+	// 	}(api)
+	// }
 }

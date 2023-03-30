@@ -53,13 +53,6 @@ func (p provisioner) AccessRequestProvision(req prov.AccessRequest) (prov.Reques
 	p.log.Info(instDetails)
 	apiID := util.ToString(instDetails[common.AttrAPIID])
 	log.Info("APIid :" + apiID)
-	componentID := util.ToString(instDetails[common.AttrComponentID])
-	log.Info("componentID :" + componentID)
-	environmentID := util.ToString(instDetails[common.AttrEnvironmentID])
-	log.Info("environmentID :" + environmentID)
-	if apiID == "" || componentID == "" || environmentID == "" {
-		return p.failed(rs, notFound(common.AttrAPIID)), nil
-	}
 
 	p.log.
 		WithField("api", apiID).

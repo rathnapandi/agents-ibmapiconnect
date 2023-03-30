@@ -14,7 +14,7 @@ type Auth interface {
 
 // auth represents the authentication information.
 type auth struct {
-	token      string
+	token      OauthToken
 	credential *Credential
 	client     AuthClient
 	stopChan   chan struct{}
@@ -25,16 +25,15 @@ func NewAuth(client AuthClient) (Auth, error) {
 	a := &auth{
 		stopChan: make(chan struct{}),
 	}
-	token, user, lifetime, err := client.GetAccessToken()
+	token, user, err := client.GetAccessToken()
 	if err != nil {
 		return nil, err
 	}
 
-	a.token = token
+	a.token = *token
 	a.credential = user
 	a.client = client
-	a.startRefreshToken(lifetime)
-
+	a.startRefreshToken(time.Duration(token.ExpiresIn))
 	return a, nil
 }
 
@@ -60,16 +59,14 @@ func (a *auth) startRefreshToken(lifetime time.Duration) {
 			select {
 			case <-timer.C:
 				log.Debug("Regenerating access token")
-				token, user, lifetime, err := a.client.GetAccessToken()
+				token, err := a.client.RefreshToken(&a.token)
 				if err != nil {
 					// In an error scenario retry every 10 seconds
 					log.Error(err)
 					timer = time.NewTimer(10 * time.Second)
 					continue
 				}
-				a.token = token
-				a.user = user
-
+				a.token = *token
 				if lifetime <= 0 {
 					break
 				} else {
@@ -88,5 +85,5 @@ func (a *auth) startRefreshToken(lifetime time.Duration) {
 
 // GetToken returns the access token
 func (a *auth) GetToken() string {
-	return a.token
+	return a.token.AccessToken
 }
