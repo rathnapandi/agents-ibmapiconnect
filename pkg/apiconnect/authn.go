@@ -1,6 +1,7 @@
 package apiconnect
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Axway/agent-sdk/pkg/util/log"
@@ -10,6 +11,7 @@ import (
 type Auth interface {
 	Stop()
 	GetToken() string
+	SetToken(token string) // for mocking
 }
 
 // auth represents the authentication information.
@@ -33,7 +35,9 @@ func NewAuth(client AuthClient) (Auth, error) {
 	a.token = *token
 	a.credential = user
 	a.client = client
-	a.startRefreshToken(time.Duration(token.ExpiresIn))
+	durationStr := fmt.Sprintf("%d%s", token.ExpiresIn, "s")
+	duration, _ := time.ParseDuration(durationStr)
+	a.startRefreshToken(duration)
 	return a, nil
 }
 
@@ -86,4 +90,9 @@ func (a *auth) startRefreshToken(lifetime time.Duration) {
 // GetToken returns the access token
 func (a *auth) GetToken() string {
 	return a.token.AccessToken
+}
+
+// GetToken returns the access token
+func (a *auth) SetToken(token string) {
+	a.token.AccessToken = token
 }

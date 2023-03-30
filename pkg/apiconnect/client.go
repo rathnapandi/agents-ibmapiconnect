@@ -23,8 +23,9 @@ type Page struct {
 }
 
 type Client interface {
-	GetAPI(id string) (*API, error)
+	GetAPI(apiId string) (*API, error)
 	ListAPIs() (*ListCatalogResponse, error)
+	getWsdl(apiId string) (*Wsdl, error)
 	OnConfigChange(ibmApiConnectConfig *config.ApiConnectConfig)
 }
 
@@ -47,11 +48,22 @@ type AuthClient interface {
 }
 
 // NewClient creates a new client for interacting with IBM Api connect.
-func NewClient(apiconnectConfig *config.ApiConnectConfig) *IbmApiConnectClient {
+func NewClient(apiconnectConfig *config.ApiConnectConfig, apiClient coreapi.Client, mock bool) *IbmApiConnectClient {
 	client := &IbmApiConnectClient{}
-	client.apiClient = coreapi.NewClient(apiconnectConfig.TLS, apiconnectConfig.ProxyURL)
-	client.OnConfigChange(apiconnectConfig)
-	hc.RegisterHealthcheck("IBM API Gateway", HealthCheckEndpoint, client.healthcheck)
+	//client.apiClient = coreapi.NewClient(apiconnectConfig.TLS, apiconnectConfig.ProxyURL)
+	client.apiClient = apiClient
+
+	if mock {
+		client.auth = &auth{
+			token: OauthToken{
+				AccessToken: "test",
+			},
+		}
+	} else {
+		client.OnConfigChange(apiconnectConfig)
+	}
+
+	//hc.RegisterHealthcheck("IBM API Gateway", HealthCheckEndpoint, client.healthcheck)
 	return client
 }
 
@@ -133,13 +145,34 @@ func (c *IbmApiConnectClient) ListAPIs() (*ListCatalogResponse, error) {
 	return application, nil
 }
 
-func (a *IbmApiConnectClient) getSpec(specFile string) (string, []byte, error) {
-	return "", nil, nil
+func (c *IbmApiConnectClient) getWsdl(apiId string) (*Wsdl, error) {
+	wsdl := &Wsdl{}
+
+	url := fmt.Sprintf("%s/catalogs/%s/%s/apis/%s/wsdl", c.url, c.organizationName, c.catalogName, apiId)
+	headers := map[string]string{
+		"Accept":        "application/json",
+		"Authorization": "Bearer " + c.auth.GetToken(),
+	}
+
+	request := coreapi.Request{
+		Method:  coreapi.GET,
+		URL:     url,
+		Headers: headers,
+	}
+	response, err := c.apiClient.Send(request)
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(response.Body, wsdl)
+	if err != nil {
+		return nil, err
+	}
+	return wsdl, nil
+
 }
 
 // GetAPI gets a single api by id
 func (c *IbmApiConnectClient) GetAPI(id string) (*API, error) {
-
 	return nil, nil
 }
 
@@ -148,6 +181,7 @@ func (c *IbmApiConnectClient) GetAccessToken() (*OauthToken, *Credential, error)
 	oauthToken := &OauthToken{}
 	headers := map[string]string{
 		"Content-Type": "application/json",
+		"Accept":       "application/json",
 	}
 
 	authnRequest := AuthnRequest{
@@ -164,6 +198,8 @@ func (c *IbmApiConnectClient) GetAccessToken() (*OauthToken, *Credential, error)
 		Headers: headers,
 		Body:    requestBody,
 	}
+
+	fmt.Println(string(requestBody))
 
 	log.Println("Create OAuth token")
 	response, err := c.apiClient.Send(request)
@@ -189,6 +225,7 @@ func (c *IbmApiConnectClient) RefreshToken(oauthToken *OauthToken) (*OauthToken,
 
 	headers := map[string]string{
 		"Content-Type": "application/json",
+		"Accept":       "application/json",
 	}
 	authnRequest := AuthnRequest{
 		ClientId:     c.clientId,
