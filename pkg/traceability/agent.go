@@ -31,7 +31,7 @@ func NewBeater(_ *beat.Beat, _ *common.Config) (beat.Beater, error) {
 	generator := transaction.NewEventGenerator()
 	mapper := &EventMapper{}
 	processor := NewEventProcessor(agentConfig, generator, mapper)
-	emitter := NewIbmEventEmitter(agentConfig.IbmApiConnectConfig.LogFile, eventChannel)
+	emitter := NewIbmEventEmitter(agentConfig.ApiConnectConfig.LogFile, eventChannel)
 
 	return newAgent(processor, emitter, eventChannel)
 }
