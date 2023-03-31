@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -117,6 +118,10 @@ func getSpecType(specContent []byte) (string, error) {
 		jsonMap := make(map[string]interface{})
 		err := json.Unmarshal(specContent, &jsonMap)
 		if err != nil {
+			// check for xml
+			if bytes.Contains(specContent, []byte("http://schemas.xmlsoap.org/wsdl/")) {
+				return apic.Wsdl, nil
+			}
 			return "", err
 		}
 		if _, isSwagger := jsonMap["swagger"]; isSwagger {
