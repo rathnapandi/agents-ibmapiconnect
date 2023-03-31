@@ -105,7 +105,7 @@ func TestGetWsdl(t *testing.T) {
 		}, nil
 	}
 
-	wsdl, err := apiConnectClient.getWsdl("daea6c77-ceef-4c41-b55f-acea0204789e")
+	wsdl, err := apiConnectClient.DownloadWsdl("daea6c77-ceef-4c41-b55f-acea0204789e")
 
 	assert.Nil(t, err)
 	assert.Equal(t, wsdl.ContentType, "application/wsdl")
@@ -139,7 +139,7 @@ func TestGetWsdlFailure(t *testing.T) {
 		}, nil
 	}
 
-	wsdl, err := apiConnectClient.getWsdl("daea6c77-ceef-4c41-b55f-acea0204789e")
+	wsdl, err := apiConnectClient.DownloadWsdl("daea6c77-ceef-4c41-b55f-acea0204789e")
 
 	assert.Nil(t, err)
 

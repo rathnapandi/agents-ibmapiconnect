@@ -23,9 +23,10 @@ type Page struct {
 }
 
 type Client interface {
-	GetAPI(apiId string) (*API, error)
 	ListAPIs() (*ListCatalogResponse, error)
-	getWsdl(apiId string) (*Wsdl, error)
+	DownloadWsdl(apiId string) (*Wsdl, error)
+	DownloadApiSpec(apiId string) ([]byte, error)
+	GetDatapowerGatewayDetails(url string) (*DatapowerGateway, error)
 	OnConfigChange(ibmApiConnectConfig *config.ApiConnectConfig)
 }
 
@@ -87,7 +88,7 @@ func (c *IbmApiConnectClient) OnConfigChange(apiconnectConfig *config.ApiConnect
 }
 
 func (c *IbmApiConnectClient) healthcheck(name string) (status *hc.Status) {
-	url := c.url + "/graphql/health"
+	url := c.url + HealthCheckEndpoint
 	fmt.Println(url)
 	status = &hc.Status{
 		Result: hc.OK,
@@ -145,7 +146,7 @@ func (c *IbmApiConnectClient) ListAPIs() (*ListCatalogResponse, error) {
 	return application, nil
 }
 
-func (c *IbmApiConnectClient) getWsdl(apiId string) (*Wsdl, error) {
+func (c *IbmApiConnectClient) DownloadWsdl(apiId string) (*Wsdl, error) {
 	wsdl := &Wsdl{}
 
 	url := fmt.Sprintf("%s/catalogs/%s/%s/apis/%s/wsdl", c.url, c.organizationName, c.catalogName, apiId)
@@ -171,9 +172,48 @@ func (c *IbmApiConnectClient) getWsdl(apiId string) (*Wsdl, error) {
 
 }
 
-// GetAPI gets a single api by id
-func (c *IbmApiConnectClient) GetAPI(id string) (*API, error) {
-	return nil, nil
+func (c *IbmApiConnectClient) DownloadApiSpec(apiId string) ([]byte, error) {
+	url := fmt.Sprintf("%s/catalogs/%s/%s/apis/%s/document", c.url, c.organizationName, c.catalogName, apiId)
+	headers := map[string]string{
+		"Accept":        "application/json",
+		"Authorization": "Bearer " + c.auth.GetToken(),
+	}
+
+	request := coreapi.Request{
+		Method:  coreapi.GET,
+		URL:     url,
+		Headers: headers,
+	}
+	response, err := c.apiClient.Send(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Body, nil
+
+}
+
+func (c *IbmApiConnectClient) GetDatapowerGatewayDetails(url string) (*DatapowerGateway, error) {
+	datapowerGateway := &DatapowerGateway{}
+
+	headers := map[string]string{
+		"Accept":        "application/json",
+		"Authorization": "Bearer " + c.auth.GetToken(),
+	}
+	request := coreapi.Request{
+		Method:  coreapi.GET,
+		URL:     url,
+		Headers: headers,
+	}
+	response, err := c.apiClient.Send(request)
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(response.Body, datapowerGateway)
+	if err != nil {
+		return nil, err
+	}
+	return datapowerGateway, nil
 }
 
 func (c *IbmApiConnectClient) GetAccessToken() (*OauthToken, *Credential, error) {

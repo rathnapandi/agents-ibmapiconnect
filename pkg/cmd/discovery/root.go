@@ -5,7 +5,9 @@ import (
 	"github.com/rathnapandi/agents-ibmapiconnect/pkg/apiconnect"
 	"github.com/sirupsen/logrus"
 
+	coreapi "github.com/Axway/agent-sdk/pkg/api"
 	corecmd "github.com/Axway/agent-sdk/pkg/cmd"
+
 	"github.com/Axway/agent-sdk/pkg/cmd/service"
 	corecfg "github.com/Axway/agent-sdk/pkg/config"
 	subs "github.com/rathnapandi/agents-ibmapiconnect/pkg/subscription"
@@ -54,8 +56,8 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	logger := logrus.WithFields(logrus.Fields{
 		"component": "agent",
 	})
-
-	gatewayClient := apiconnect.NewClient(conf.ApiConnectConfig)
+	client := coreapi.NewClient(conf.ApiConnectConfig.TLS, conf.ApiConnectConfig.ProxyURL)
+	gatewayClient := apiconnect.NewClient(conf.ApiConnectConfig, client, false)
 	if centralConfig.IsMarketplaceSubsEnabled() {
 		agent.RegisterProvisioner(subs.NewProvisioner(gatewayClient, logger))
 	}

@@ -1,10 +1,6 @@
 package discovery
 
 import (
-	"net"
-	"net/url"
-	"strconv"
-
 	coreAgent "github.com/Axway/agent-sdk/pkg/agent"
 	"github.com/Axway/agent-sdk/pkg/apic"
 	"github.com/Axway/agent-sdk/pkg/util"
@@ -71,28 +67,6 @@ func BuildServiceBody(service *ServiceDetail) (apic.ServiceBody, error) {
 			tags[tag] = true
 		}
 	}
-	endpointUrl, err := url.Parse(service.URL)
-	if err != nil {
-		panic(err)
-	}
-	host, port, err := net.SplitHostPort(endpointUrl.Host)
-	if err != nil {
-		panic(err)
-	}
-	if endpointUrl.Scheme == "https" && port == "" {
-		port = "443"
-	} else if endpointUrl.Scheme == "http" && port == "" {
-		port = "80"
-	}
-	portInt, _ := strconv.Atoi(port)
-	endpoint := apic.EndpointDefinition{
-		Host:     host,
-		Port:     int32(portInt),
-		BasePath: endpointUrl.Path,
-		Protocol: endpointUrl.Scheme,
-	}
-	var endpoints [1]apic.EndpointDefinition
-	endpoints[0] = endpoint
 
 	return apic.NewServiceBodyBuilder().
 		SetAPIName(service.APIName).
@@ -116,6 +90,5 @@ func BuildServiceBody(service *ServiceDetail) (apic.ServiceBody, error) {
 		SetVersion(service.Version).
 		SetAccessRequestDefinitionName(service.AccessRequestDefinition, false).
 		SetCredentialRequestDefinitions(service.CRDs).
-		SetServiceEndpoints(endpoints[:]).
 		Build()
 }

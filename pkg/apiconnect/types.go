@@ -56,9 +56,14 @@ type Results struct {
 	DocumentSpecification string   `json:"document_specification"`
 	BasePaths             []string `json:"base_paths"`
 	Enforced              bool     `json:"enforced"`
+	GatewayServiceUrls    []string `json:"gateway_service_urls"`
 }
 
 type Wsdl struct {
 	ContentType string `json:"content_type"`
 	Content     string `json:"content"`
+}
+
+type DatapowerGateway struct {
+	CatalogBase string `json:"catalog_base"`
 }

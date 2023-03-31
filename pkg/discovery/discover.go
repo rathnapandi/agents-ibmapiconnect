@@ -1,7 +1,7 @@
 package discovery
 
 import (
-	"fmt"
+	"encoding/base64"
 	"time"
 
 	"github.com/Axway/agent-sdk/pkg/apic"
@@ -58,54 +58,57 @@ func (d *discovery) Loop() {
 // discoverAPIs Finds APIs from exchange
 func (d *discovery) discoverAPIs() {
 
-	response, err := d.client.ListAPIs()
+	apis, err := d.client.ListAPIs()
 	if err != nil {
 		log.Error(err)
+		return
 	}
-	fmt.Println(response)
 
-	// for _, deployedApi := range response.DeployedApi {
-	// 	spec := deployedApi.Component.Definition
+	for _, api := range apis.Results {
+		go func(api apiconnect.Results) {
+			apiId := api.Id
+			wsdl, err := d.client.DownloadWsdl(apiId)
+			if err != nil {
+				log.Error("Unable to Download WSDL : %s", err)
+				return
+			}
+			var specification []byte
+			if wsdl.ContentType == "" {
+				specification, err = d.client.DownloadApiSpec(apiId)
+				if err != nil {
+					log.Error("Unable to download Api specification : %s", err)
+					return
+				}
+			} else {
+				specification, err = base64.StdEncoding.DecodeString(wsdl.Content)
+				if err != nil {
+					log.Error("Unable to DecodeWSDL base 64 content: %s", err)
+					return
+				}
+			}
 
-	// 	if err := xml.Unmarshal([]byte(spec), &component); err != nil {
-	// 		panic(err)
-	// 	}
-	// 	fileContnet := component.PublicationInfo.SwaggerFile.FileContent
-	// 	decodedString, err := base64.StdEncoding.DecodeString(fileContnet)
-	// 	if err != nil {
-	// 		panic(fmt.Sprintf("Error decoding file: %s", err))
-	// 	}
-	// 	reader, err := gzip.NewReader(bytes.NewReader(decodedString))
-	// 	if err != nil {
-	// 		panic(fmt.Sprintf("Error setting up gzip: %s", err))
-	// 	}
-	// 	result, err := ioutil.ReadAll(reader)
-	// 	if err != nil {
-	// 		panic(fmt.Sprintf("Unable to decompress : %s", err))
-	// 	}
-	// 	authPolicy := handleAuthPolicy(deployedApi)
-	// 	url := handleEndpointType(deployedApi)
-	// 	api := apiconnect.API{
-	// 		ID:          deployedApi.ID,
-	// 		Name:        component.Name,
-	// 		Description: component.PublicationInfo.Description,
-	// 		Version:     component.Version,
-	// 		// append endpoint url
-	// 		Url:           url,
-	// 		Documentation: []byte(deployedApi.Metadata.Description),
-	// 		ApiSpec:       result,
-	// 		AuthPolicy:    authPolicy,
-	// 		ComponentId:   component.Id,
-	// 		EnvironmentId: deployedApi.Environment.ID,
-	// 	}
-	// 	apis = append(apis, api)
-	// }
-	// for _, api := range apis {
-	// 	go func(api apiconnect.API) {
-	// 		svcDetail := d.serviceHandler.ToServiceDetail(&api)
-	// 		if svcDetail != nil {
-	// 			d.apiChan <- svcDetail
-	// 		}
-	// 	}(api)
-	// }
+			dataPowerGateway, err := d.client.GetDatapowerGatewayDetails(api.GatewayServiceUrls[0])
+			if err != nil {
+				log.Error("Error reaching out Datapower gateway: %s", err)
+				return
+			}
+
+			amplifyApi := apiconnect.API{
+				ID:          api.Id,
+				Name:        api.Name,
+				Description: api.Title,
+				Version:     api.Version,
+				// append endpoint url
+				Url:           dataPowerGateway.CatalogBase + api.BasePaths[0],
+				Documentation: []byte(api.Title),
+				ApiSpec:       specification,
+				//	AuthPolicy:    authPolicy,
+			}
+			svcDetail := d.serviceHandler.ToServiceDetail(&amplifyApi)
+			if svcDetail != nil {
+				d.apiChan <- svcDetail
+			}
+
+		}(api)
+	}
 }
